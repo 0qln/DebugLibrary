@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.IO.Pipes;
+using System.Reflection;
 
 namespace Debugger
 {
@@ -13,7 +14,7 @@ namespace Debugger
         {
             
         }
-        public static void Instaciate() {
+        public static DebuggerConsole Instaciate() {
             get
             {
                 lock (padlock)
@@ -26,6 +27,40 @@ namespace Debugger
                 }
             }
         }
+        public void Dispose() {
+
+        }
+
+        public void Log(string message) {
+            if (String.IsNullOrWhiteSpace(message)) {
+                return;
+            }
+            CreateCommand.LogCommand(message).Execute();
+        }
+        public void DeleteLine() => CreateCommand.DeleteLineCommand().Execute();
+        public void Clear() => CreateCommand.ClearCommand().Execute();
+
+        public void Save() {
+
+        }
+        public void SaveNew() {
+            
+        }
+        public void Save(string filename) {
+            
+        }
+        public void SaveNew(string filename) {
+            
+        }
+
+        public void Load() {
+
+        }
+        public void Load(string filename) {
+
+        }
+
+        internal string ProjectDirectory => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
     }
 
     internal interface IDebuggerConsole
