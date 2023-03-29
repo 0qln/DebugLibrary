@@ -4,11 +4,28 @@ using System.IO.Pipes;
 
 namespace Debugger
 {
-    public class DebuggerConsole
+    public class DebuggerConsole : IDebuggerConsole
     {
-        //Singleton behaviour n shit
-        
+        private static DebuggerConsole instance;
+        private static readonly object padlock = new object();
 
+        private DebuggerConsole()
+        {
+            
+        }
+        public static void Instaciate() {
+            get
+            {
+                lock (padlock)
+                {
+                    if (instance == null)
+                    {
+                        instance = new DebuggerConsole();
+                    }
+                    return instance;
+                }
+            }
+        }
     }
 
     internal interface IDebuggerConsole
@@ -27,7 +44,7 @@ namespace Debugger
 
         public void Instaciate();
         private DebuggerConsole();
-        public void Close();
+        public void Dispose();
     }
 
 
@@ -44,6 +61,9 @@ namespace Debugger
         }
 
         public static CloseCommand() => new CloseCommand();
+        public static DeleteLineCommand() => new DeleteLineCommand();
+        public static CloseCommand() => new CloseCommand();
+        public static LogCommand(string message) => new LogCommand(message);
 
 
         internal class ClearCommand : ICommand {
@@ -64,21 +84,50 @@ namespace Debugger
         }
     }
 
-    internal class PipeManager
+
+
+    internal class PipeManager : IDisposable
     {
+        private const string pipeName = "ContentPipe";
+        private NamedPipeServerStream pipeServer;
         private readonly string executionString;
+        private StreamWriter writer;
+
 
         public PipeManager(string executionString) {
+            NamedPipeServerStream pipeServer = new NamedPipeServerStream(pipeName);
             this.executionString = executionString;
+            pipeServer.WaitForConnection();
+            writer = new StreamWriter(pipeServer);
+            SendMessage(executionString);
         }
 
         public void SendMessage(string message)
         {
-
+            writer.WriteLine(message);
+            writer.Flush();
         }
-
         public string getExecutionString() {
             return executionString;
         }
+
+        public void Dispose() {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+        protected virtual void Dispose(bool disposing)
+        {
+            if(!this.disposed)
+            {
+                if(disposing)
+                {
+                    pipeServer.Dispose();
+                    writer.Dispose();
+                    component.Dispose();
+                }
+                disposed = true;
+            }
+        }
+
     }
 }
