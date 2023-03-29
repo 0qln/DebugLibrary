@@ -2,6 +2,7 @@
 using System.IO;
 using System.IO.Pipes;
 using System.Reflection;
+using System.Linq;
 
 namespace Debugger
 {
@@ -10,9 +11,12 @@ namespace Debugger
         private static DebuggerConsole instance;
         private static readonly object padlock = new object();
 
+        private const string executionString = "```"; 
+        private CommandManager cm;
+
         private DebuggerConsole()
         {
-            
+            cm = new CommandManager(executionString);
         }
         public static DebuggerConsole Instaciate() {
             get
@@ -35,10 +39,10 @@ namespace Debugger
             if (String.IsNullOrWhiteSpace(message)) {
                 return;
             }
-            CreateCommand.LogCommand(message).Execute();
+            new CreateCommand.LogCommand(message).Execute();
         }
-        public void DeleteLine() => CreateCommand.DeleteLineCommand().Execute();
-        public void Clear() => CreateCommand.ClearCommand().Execute();
+        public void DeleteLine() => new CreateCommand.DeleteLineCommand().Execute();
+        public void Clear() => new CreateCommand.ClearCommand().Execute();
 
         public void Save() {
 
@@ -76,10 +80,6 @@ namespace Debugger
         public void SaveNew(string filename);
         public void Load();
         public void Load(string filename);
-
-        public void Instaciate();
-        private DebuggerConsole();
-        public void Dispose();
     }
 
 
@@ -87,18 +87,18 @@ namespace Debugger
     {
         public void Execute();
     }
-    internal static class CreateCommand
+    internal class CreateCommand
     {
         private static PipeManager pm;
-        public static void Instaciate(PipeManager pm)
+        public static void Instaciate(PipeManager pPm)
         {
-            this.pm = pm;
+            pm = pPm;
         }
 
-        public static CloseCommand() => new CloseCommand();
-        public static DeleteLineCommand() => new DeleteLineCommand();
-        public static CloseCommand() => new CloseCommand();
-        public static LogCommand(string message) => new LogCommand(message);
+        public static ICommand Close() => new CloseCommand();
+        public static ICommand DeleteLine() => new DeleteLineCommand();
+        public static ICommand Clear() => new ClearCommand();
+        public static ICommand Log(string message) => new LogCommand(message);
 
 
         internal class ClearCommand : ICommand {
@@ -120,6 +120,29 @@ namespace Debugger
     }
 
 
+    internal class CommandManager {
+        private PipeManager pm;
+        private Queue<ICommand> commands;
+
+        public CommandManager(string executionString) {
+            pm = new PipeManager(executionString);
+        }
+
+        public void AddCommand(ICommand command) {
+            commands.Append(command);
+        }
+
+        public void Execute(ICommand command) {
+            command.Execute();
+        }
+
+        public void ExecuteAll() {
+            foreach (var command in commands) {
+                commands.Dequeue().Execute();
+            }
+        }
+    }
+
 
     internal class PipeManager : IDisposable
     {
@@ -127,6 +150,7 @@ namespace Debugger
         private NamedPipeServerStream pipeServer;
         private readonly string executionString;
         private StreamWriter writer;
+        private bool disposed;
 
 
         public PipeManager(string executionString) {
@@ -152,13 +176,12 @@ namespace Debugger
         }
         protected virtual void Dispose(bool disposing)
         {
-            if(!this.disposed)
+            if(!disposed)
             {
                 if(disposing)
                 {
                     pipeServer.Dispose();
                     writer.Dispose();
-                    component.Dispose();
                 }
                 disposed = true;
             }
