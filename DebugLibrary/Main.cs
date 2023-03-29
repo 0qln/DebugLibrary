@@ -8,7 +8,7 @@ namespace Debugger
 {
     public class DebuggerConsole : IDebuggerConsole
     {
-        private static DebuggerConsole instance;
+        private static DebuggerConsole ?instance;
         private static readonly object padlock = new object();
 
         private const string executionString = "```"; 
@@ -18,7 +18,7 @@ namespace Debugger
         {
             cm = new CommandManager(executionString);
         }
-        public static DebuggerConsole Instaciate() {
+        public static DebuggerConsole Instaciate {
             get
             {
                 lock (padlock)
@@ -64,7 +64,7 @@ namespace Debugger
 
         }
 
-        internal string ProjectDirectory => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        internal string ?ProjectDirectory => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
     }
 
     internal interface IDebuggerConsole
@@ -126,6 +126,7 @@ namespace Debugger
 
         public CommandManager(string executionString) {
             pm = new PipeManager(executionString);
+            commands = new Queue<ICommand>();
         }
 
         public void AddCommand(ICommand command) {
@@ -147,7 +148,7 @@ namespace Debugger
     internal class PipeManager : IDisposable
     {
         private const string pipeName = "ContentPipe";
-        private NamedPipeServerStream pipeServer;
+        private NamedPipeServerStream ?pipeServer;
         private readonly string executionString;
         private StreamWriter writer;
         private bool disposed;
