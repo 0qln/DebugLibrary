@@ -26,9 +26,7 @@ namespace Debugger
         {
             process.StartInfo.FileName = processPath;
             process.Start();
-
             PipeManager.Instaciate(executionString);
-            return;
         }
         public static DebuggerConsole Instaciate {
             get
