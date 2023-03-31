@@ -13,7 +13,7 @@ namespace Debugger
         internal static List<string> content = new List<string>();
 
         internal const string processPath = @"D:\Programmmieren\__DebugLibrary\Application\New Folder #2\ConsoleWindow.exe";
-        private static Process process;
+        private static Process process = new Process();
 
         private static DebuggerConsole ?instance;
         private static readonly object padlock = new object();
@@ -24,11 +24,11 @@ namespace Debugger
 
         private DebuggerConsole()
         {
-            process = new Process();
             process.StartInfo.FileName = processPath;
             process.Start();
-            
+
             PipeManager.Instaciate(executionString);
+            return;
         }
         public static DebuggerConsole Instaciate {
             get
@@ -52,6 +52,9 @@ namespace Debugger
         public void Log(string message) {
             if (String.IsNullOrWhiteSpace(message)) {
                 throw new ArgumentException("Message was white space.");
+            }
+            if (message.Contains(executionString)) {
+                throw new ArgumentException($"Message cannot contain {executionString}");
             }
 
             new LogCommand(message).Execute();
@@ -201,9 +204,13 @@ namespace Debugger
         public static void Instaciate(string pExecutionString) {
             if (instanciated) throw new ArgumentException("Pipemanager has already been instanciated.");
 
+
             executionString = pExecutionString;
             pipeServer.WaitForConnection();
-            SendMessage(executionString);
+            writer.WriteLineAsync(executionString);
+            writer.FlushAsync();
+
+
             instanciated = true;
         }
 
@@ -222,8 +229,12 @@ namespace Debugger
         public static void Dispose() {
             if (!instanciated) throw new ArgumentException("Pipemanager has not been instanciated yet.");
 
+            pipeServer.Disconnect();
+            pipeServer.Close();
             pipeServer.Dispose();
+
             writer.Dispose();
+
             instanciated = false;
         }
             
