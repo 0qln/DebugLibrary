@@ -3,20 +3,24 @@ using System.IO;
 using System.IO.Pipes;
 using System.Reflection;
 using System.Linq;
+using CommandLibrary;
 
 namespace Debugger
 {
     public class DebuggerConsole : IDebuggerConsole
     {
+        internal static List<string> content = new List<string>();
+
         private static DebuggerConsole ?instance;
         private static readonly object padlock = new object();
 
-        private const string executionString = "```"; 
-        private CommandManager cm;
+        private const string executionString = "```";
+        internal static CommandManager cm = new CommandManager();
+
 
         private DebuggerConsole()
         {
-            cm = new CommandManager(executionString);
+            PipeManager.Instaciate(executionString);
         }
         public static DebuggerConsole Instaciate {
             get
@@ -32,39 +36,106 @@ namespace Debugger
             }
         }
         public void Dispose() {
-
+            instance = null;
+            PipeManager.Dispose();
         }
 
         public void Log(string message) {
             if (String.IsNullOrWhiteSpace(message)) {
-                return;
+                throw new ArgumentException("Message was white space.");
             }
-            new CreateCommand.LogCommand(message).Execute();
+
+            new LogCommand(message).Execute();
+            content.Add(message);
         }
-        public void DeleteLine() => new CreateCommand.DeleteLineCommand().Execute();
-        public void Clear() => new CreateCommand.ClearCommand().Execute();
+        public void DeleteLine()  {
+            new DeleteLineCommand().Execute();
+            content.RemoveAt(content.Count-1);
+        }
+        public void DeleteLine(int index) {
+            if (index < 0 || index > content.Count-1) {
+                throw new ArgumentException("Index was outside the bounds of the content.");
+            }
+            new DeleteLineCommand(index).Execute();
+            content.RemoveAt(index);
+        }
+        public void ClearAll() { 
+            new ClearCommand().Execute();
+            content.Clear();
+        }
+        public void ClearRange(int bottom, int top) {
+            if (bottom < 0 || top < 0) {
+                throw new ArgumentException("Index was outside the bounds of the content.");
+            }
+            if (bottom > content.Count-1 || top > content.Count-1) {
+                throw new ArgumentException("Index was outside the bounds of the content.");
+            }
+            if (bottom > top) {
+                throw new ArgumentException("Bottom Index cannot be greater than Top Index.");
+            }
+
+            for (int i = bottom; i < top; i++) {
+                DeleteLine(i);
+            }
+        }
 
         public void Save() {
-
+            if (ProjectDirectory != null)
+            Save(ProjectDirectory);
         }
         public void SaveNew() {
-            
+            if (ProjectDirectory != null)
+            SaveNew(ProjectDirectory);
         }
         public void Save(string filename) {
-            
+            if (filename == null) throw new ArgumentException("Filename was null.");
+
+            if (!Directory.Exists(filename)) Directory.CreateDirectory(Path.GetDirectoryName(filename));
+            if (!File.Exists(filename)) File.Create(filename);
+
+            File.WriteAllLines(filename, content);
         }
         public void SaveNew(string filename) {
-            
+            if (filename == null) throw new ArgumentException("Filename was null.");
+
+            if (!Directory.Exists(filename)) Directory.CreateDirectory(Path.GetDirectoryName(filename));
+            if (!File.Exists(filename)) File.Create(filename);
+
+            while (File.Exists(filename)) {
+                filename = GetUniqueFilename(filename);
+            }
+
+            File.WriteAllLines(filename, content);
         }
 
         public void Load() {
-
+            if (ProjectDirectory != null)
+            Load(ProjectDirectory);
         }
         public void Load(string filename) {
+            if (filename == null) throw new ArgumentException("Filename was null.");
+            if (!File.Exists(filename)) throw new ArgumentException("File does not exist.");
 
+            content = File.ReadAllLines(filename).ToList();
         }
 
         internal string ?ProjectDirectory => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        internal string GetUniqueFilename(string filename)
+        {
+            string directory = Path.GetDirectoryName(filename);
+            string extension = Path.GetExtension(filename);
+            string nameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
+            string newFilename = filename;
+
+            int i = 0;
+            while (File.Exists(newFilename))
+            {
+                i++;
+                newFilename = Path.Combine(directory, $"{nameWithoutExtension} ({i}){extension}");
+            }
+
+            return newFilename;
+        }
     }
 
     internal interface IDebuggerConsole
@@ -72,7 +143,7 @@ namespace Debugger
 
         public void Log(string message);
         public void DeleteLine();
-        public void Clear();
+        public void ClearAll();
 
         public void Save();
         public void SaveNew();
@@ -82,6 +153,79 @@ namespace Debugger
         public void Load(string filename);
     }
 
+
+    internal class KillCommand : ICommand {
+        public void Execute() => PipeManager.SendMessage($"{PipeManager.getExecutionString()}Kill{PipeManager.getExecutionString()}");
+    }
+    internal class LogCommand : ICommand {
+        private string message;
+        public LogCommand(string message) => this.message = message;
+        public void Execute() => PipeManager.SendMessage(message);
+    }
+    internal class DeleteLineCommand : ICommand {
+        private int index;
+        public DeleteLineCommand() => index = -1;
+        public DeleteLineCommand(int index) => this.index = index;
+
+        public void Execute() {
+            if (index == -1) {
+                PipeManager.SendMessage($"{PipeManager.getExecutionString()}DeleteLine{PipeManager.getExecutionString()}");
+            }
+            else {
+                PipeManager.SendMessage($"{PipeManager.getExecutionString()}DeleteLineWithIndexOf{index}{PipeManager.getExecutionString()}");
+            }
+        }    
+    }
+    internal class ClearCommand : ICommand {
+        public void Execute() => PipeManager.SendMessage($"{PipeManager.getExecutionString()}Clear{PipeManager.getExecutionString()}");
+    }
+
+    internal static class PipeManager
+    {
+        private const string pipeName = "ContentPipe";
+        private static NamedPipeServerStream pipeServer = new NamedPipeServerStream(pipeName);
+        private static StreamWriter writer = new StreamWriter(pipeServer);
+        private static string executionString = "";
+        private static bool instanciated = false;
+
+
+        public static void Instaciate(string pExecutionString) {
+            if (instanciated) throw new ArgumentException("Pipemanager has already been instanciated.");
+
+            executionString = pExecutionString;
+            pipeServer.WaitForConnection();
+            SendMessage(executionString);
+            instanciated = true;
+        }
+
+        public static void SendMessage(string message) {
+            if (!instanciated) throw new ArgumentException("Pipemanager has not been instanciated yet.");
+
+            writer.WriteLine(message);
+            writer.Flush();
+        }
+        public static string getExecutionString() {
+            if (!instanciated) throw new ArgumentException("Pipemanager has not been instanciated yet.");
+
+            return executionString;
+        }
+
+        public static void Dispose() {
+            if (!instanciated) throw new ArgumentException("Pipemanager has not been instanciated yet.");
+
+            pipeServer.Dispose();
+            writer.Dispose();
+            instanciated = false;
+        }
+            
+    }
+} 
+
+    
+
+
+
+/* Old Code
 
     internal interface ICommand
     {
@@ -143,50 +287,7 @@ namespace Debugger
             }
         }
     }
+*/
 
 
-    internal class PipeManager : IDisposable
-    {
-        private const string pipeName = "ContentPipe";
-        private NamedPipeServerStream ?pipeServer;
-        private readonly string executionString;
-        private StreamWriter writer;
-        private bool disposed;
-
-
-        public PipeManager(string executionString) {
-            NamedPipeServerStream pipeServer = new NamedPipeServerStream(pipeName);
-            this.executionString = executionString;
-            pipeServer.WaitForConnection();
-            writer = new StreamWriter(pipeServer);
-            SendMessage(executionString);
-        }
-
-        public void SendMessage(string message)
-        {
-            writer.WriteLine(message);
-            writer.Flush();
-        }
-        public string getExecutionString() {
-            return executionString;
-        }
-
-        public void Dispose() {
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
-        protected virtual void Dispose(bool disposing)
-        {
-            if(!disposed)
-            {
-                if(disposing)
-                {
-                    pipeServer.Dispose();
-                    writer.Dispose();
-                }
-                disposed = true;
-            }
-        }
-
-    }
-}
+    

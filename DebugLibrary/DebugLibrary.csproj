@@ -6,4 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+     <Reference Include="CommandLibrary">
+       <HintPath>D:\Programmmieren\Github\Projects\CommandLibrary\CommandLibrary\bin\Debug\net8.0\CommandLibrary.dll</HintPath>
+     </Reference>
+    </ItemGroup>
+
 </Project>
