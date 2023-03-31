@@ -4,12 +4,16 @@ using System.IO.Pipes;
 using System.Reflection;
 using System.Linq;
 using CommandLibrary;
+using System.Diagnostics;
 
 namespace Debugger
 {
     public class DebuggerConsole : IDebuggerConsole
     {
         internal static List<string> content = new List<string>();
+
+        internal const string processPath = @"D:\Programmmieren\__DebugLibrary\Application\New Folder #2\ConsoleWindow.exe";
+        private static Process process;
 
         private static DebuggerConsole ?instance;
         private static readonly object padlock = new object();
@@ -20,6 +24,10 @@ namespace Debugger
 
         private DebuggerConsole()
         {
+            process = new Process();
+            process.StartInfo.FileName = processPath;
+            process.Start();
+            
             PipeManager.Instaciate(executionString);
         }
         public static DebuggerConsole Instaciate {
@@ -36,6 +44,7 @@ namespace Debugger
             }
         }
         public void Dispose() {
+            process.Kill();
             instance = null;
             PipeManager.Dispose();
         }
