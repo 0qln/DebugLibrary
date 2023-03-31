@@ -1,14 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
      <Reference Include="CommandLibrary">
-       <HintPath>D:\Programmmieren\Github\Projects\CommandLibrary\CommandLibrary\bin\Debug\net8.0\CommandLibrary.dll</HintPath>
+       <HintPath>D:\Programmmieren\Github\Projects\CommandLibrary\CommandLibrary\bin\Debug\net7.0\CommandLibrary.dll</HintPath>
      </Reference>
     </ItemGroup>
 
