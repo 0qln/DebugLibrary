@@ -8,10 +8,9 @@ namespace PipeManaging {
         public PipeManager(string pExecutionString) {
             PipeObject.setExecutionString(pExecutionString);
             PipeObject.setPipeServer();
+            PipeObject.SendMessage(PipeObject.getExecutionString());
 
             writer = new StreamWriter(PipeObject.getPipeServer());
-            writer.WriteLineAsync(PipeObject.getExecutionString());
-            writer.FlushAsync();
         }
 
         public void SendMessage(string message) {
@@ -33,7 +32,7 @@ namespace PipeManaging {
         }
         public static void setPipeServer() {
             if (pipeServer != null) throw new ArgumentException("PipeServer can only be initiated once.");
-            pipeServer = new NamedPipeServerStream(PipeObject.pipeName);
+            pipeServer = new NamedPipeServerStream(pipeName);
             pipeServer.WaitForConnection();
             writer = new StreamWriter(pipeServer);
         }

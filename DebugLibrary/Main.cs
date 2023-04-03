@@ -25,21 +25,12 @@ namespace Debugger
 
         private PipeManager pipeManager;
 
+
         private Console()
         {
-            //Testing 
             process.StartInfo.FileName = processPath;
             process.Start();
 
-            NamedPipeServerStream pipeServer = new NamedPipeServerStream("ContentPipe");
-            pipeServer.WaitForConnection();
-            StreamWriter writer = new StreamWriter(pipeServer);
-            writer.WriteLineAsync("executionString");
-            writer.FlushAsync();
-
-            return;
-            process.StartInfo.FileName = processPath;
-            process.Start();
             pipeManager = new PipeManager(executionString);
         }
         public static Console Instaciate {
@@ -72,11 +63,11 @@ namespace Debugger
             new LogCommand(message).Execute();
             content.Add(message);
         }
-        public void DeleteLine()  {
+        public void ClearLine()  {
             new DeleteLineCommand().Execute();
             content.RemoveAt(content.Count-1);
         }
-        public void DeleteLine(int index) {
+        public void ClearLine(int index) {
             if (index < 0 || index > content.Count-1) {
                 throw new ArgumentException("Index was outside the bounds of the content.");
             }
@@ -99,7 +90,7 @@ namespace Debugger
             }
 
             for (int i = bottom; i < top; i++) {
-                DeleteLine(i);
+                ClearLine(i);
             }
         }
 
@@ -166,7 +157,7 @@ namespace Debugger
     {
 
         public void Log(string message);
-        public void DeleteLine();
+        public void ClearLine();
         public void ClearAll();
 
         public void Save();
@@ -196,7 +187,7 @@ namespace Debugger
                 PipeObject.SendMessage($"{PipeObject.getExecutionString()}DeleteLine{PipeObject.getExecutionString()}");
             }
             else {
-                PipeObject.SendMessage($"{PipeObject.getExecutionString()}DeleteLineWithIndexOf{index}{PipeObject.getExecutionString()}");
+                PipeObject.SendMessage($"{PipeObject.getExecutionString()}DeleteLineWithIndexOf{PipeObject.getExecutionString()}{index}");
             }
         }    
     }
