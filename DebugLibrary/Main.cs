@@ -4,38 +4,52 @@ using System.IO.Pipes;
 using System.Reflection;
 using System.Linq;
 using CommandLibrary;
+using PipeManaging;
 using System.Diagnostics;
+
 
 namespace Debugger
 {
-    public class DebuggerConsole : IDebuggerConsole
+    public class Console : IConsole
     {
         internal static List<string> content = new List<string>();
 
         internal const string processPath = @"D:\Programmmieren\__DebugLibrary\Application\New Folder #2\ConsoleWindow.exe";
         private static Process process = new Process();
 
-        private static DebuggerConsole ?instance;
+        private static Console ?instance;
         private static readonly object padlock = new object();
 
         private const string executionString = "```";
         internal static CommandManager cm = new CommandManager();
 
+        private PipeManager pipeManager;
 
-        private DebuggerConsole()
+        private Console()
         {
+            //Testing 
             process.StartInfo.FileName = processPath;
             process.Start();
-            PipeManager.Instaciate(executionString);
+
+            NamedPipeServerStream pipeServer = new NamedPipeServerStream("ContentPipe");
+            pipeServer.WaitForConnection();
+            StreamWriter writer = new StreamWriter(pipeServer);
+            writer.WriteLineAsync("executionString");
+            writer.FlushAsync();
+
+            return;
+            process.StartInfo.FileName = processPath;
+            process.Start();
+            pipeManager = new PipeManager(executionString);
         }
-        public static DebuggerConsole Instaciate {
+        public static Console Instaciate {
             get
             {
                 lock (padlock)
                 {
                     if (instance == null)
                     {
-                        instance = new DebuggerConsole();
+                        instance = new Console();
                     }
                     return instance;
                 }
@@ -44,7 +58,7 @@ namespace Debugger
         public void Dispose() {
             process.Kill();
             instance = null;
-            PipeManager.Dispose();
+            PipeObject.Dispose();
         }
 
         public void Log(string message) {
@@ -148,7 +162,7 @@ namespace Debugger
         }
     }
 
-    internal interface IDebuggerConsole
+    internal interface IConsole
     {
 
         public void Log(string message);
@@ -165,12 +179,12 @@ namespace Debugger
 
 
     internal class KillCommand : ICommand {
-        public void Execute() => PipeManager.SendMessage($"{PipeManager.getExecutionString()}Kill{PipeManager.getExecutionString()}");
+        public void Execute() => PipeObject.SendMessage($"{PipeObject.getExecutionString()}Kill{PipeObject.getExecutionString()}");
     }
     internal class LogCommand : ICommand {
         private string message;
         public LogCommand(string message) => this.message = message;
-        public void Execute() => PipeManager.SendMessage(message);
+        public void Execute() => PipeObject.SendMessage(message);
     }
     internal class DeleteLineCommand : ICommand {
         private int index;
@@ -179,63 +193,15 @@ namespace Debugger
 
         public void Execute() {
             if (index == -1) {
-                PipeManager.SendMessage($"{PipeManager.getExecutionString()}DeleteLine{PipeManager.getExecutionString()}");
+                PipeObject.SendMessage($"{PipeObject.getExecutionString()}DeleteLine{PipeObject.getExecutionString()}");
             }
             else {
-                PipeManager.SendMessage($"{PipeManager.getExecutionString()}DeleteLineWithIndexOf{index}{PipeManager.getExecutionString()}");
+                PipeObject.SendMessage($"{PipeObject.getExecutionString()}DeleteLineWithIndexOf{index}{PipeObject.getExecutionString()}");
             }
         }    
     }
     internal class ClearCommand : ICommand {
-        public void Execute() => PipeManager.SendMessage($"{PipeManager.getExecutionString()}Clear{PipeManager.getExecutionString()}");
-    }
-
-    internal static class PipeManager
-    {
-        private const string pipeName = "ContentPipe";
-        private static NamedPipeServerStream pipeServer = new NamedPipeServerStream(pipeName);
-        private static StreamWriter writer = new StreamWriter(pipeServer);
-        private static string executionString = "";
-        private static bool instanciated = false;
-
-
-        public static void Instaciate(string pExecutionString) {
-            if (instanciated) throw new ArgumentException("Pipemanager has already been instanciated.");
-
-
-            executionString = pExecutionString;
-            pipeServer.WaitForConnection();
-            writer.WriteLineAsync(executionString);
-            writer.FlushAsync();
-
-
-            instanciated = true;
-        }
-
-        public static void SendMessage(string message) {
-            if (!instanciated) throw new ArgumentException("Pipemanager has not been instanciated yet.");
-
-            writer.WriteLine(message);
-            writer.Flush();
-        }
-        public static string getExecutionString() {
-            if (!instanciated) throw new ArgumentException("Pipemanager has not been instanciated yet.");
-
-            return executionString;
-        }
-
-        public static void Dispose() {
-            if (!instanciated) throw new ArgumentException("Pipemanager has not been instanciated yet.");
-
-            pipeServer.Disconnect();
-            pipeServer.Close();
-            pipeServer.Dispose();
-
-            writer.Dispose();
-
-            instanciated = false;
-        }
-            
+        public void Execute() => PipeObject.SendMessage($"{PipeObject.getExecutionString()}Clear{PipeObject.getExecutionString()}");
     }
 } 
 
