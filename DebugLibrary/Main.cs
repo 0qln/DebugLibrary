@@ -14,7 +14,6 @@ namespace Debugger
     {
         internal static List<string> content = new List<string>();
 
-        internal const string processPath = @"D:\Programmmieren\__DebugLibrary\Application\New Folder #2\ConsoleWindow.exe";
         private static Process process = new Process();
 
         private static Console ?instance;
@@ -28,7 +27,9 @@ namespace Debugger
 
         private Console()
         {
-            process.StartInfo.FileName = processPath;
+            WriteProcessStartArguments("DebugLibrary");
+
+            process.StartInfo.FileName = ApplicationPath;
             process.Start();
 
             pipeManager = new PipeManager(executionString);
@@ -52,8 +53,15 @@ namespace Debugger
             PipeObject.Dispose();
         }
 
+
+        public string ApplicationPath => ApplicationFolderPath + "\\WpfApp.exe";
+        public string ApplicationFolderPath => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\ConsoleWindow";
+        internal string ProjectDirectory => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        internal string ProcessStartargumentPath => ApplicationFolderPath + "\\startArguments.txt";
+
         public void Log(string message) {
             if (String.IsNullOrWhiteSpace(message)) {
+                return;
                 throw new ArgumentException("Message was white space.");
             }
             if (message.Contains(executionString)) {
@@ -134,7 +142,6 @@ namespace Debugger
             content = File.ReadAllLines(filename).ToList();
         }
 
-        internal string ?ProjectDirectory => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         internal string GetUniqueFilename(string filename)
         {
             string directory = Path.GetDirectoryName(filename);
@@ -150,6 +157,13 @@ namespace Debugger
             }
 
             return newFilename;
+        }
+
+        public void WriteProcessStartArguments(string argument) {
+            if (!File.Exists(ProcessStartargumentPath)) {
+                File.Create(ProcessStartargumentPath);
+            }
+            File.WriteAllText(ProcessStartargumentPath, argument);
         }
     }
 
@@ -194,75 +208,5 @@ namespace Debugger
     internal class ClearCommand : ICommand {
         public void Execute() => PipeObject.SendMessage($"{PipeObject.getExecutionString()}Clear{PipeObject.getExecutionString()}");
     }
-} 
-
-    
-
-
-
-/* Old Code
-
-    internal interface ICommand
-    {
-        public void Execute();
-    }
-    internal class CreateCommand
-    {
-        private static PipeManager pm;
-        public static void Instaciate(PipeManager pPm)
-        {
-            pm = pPm;
-        }
-
-        public static ICommand Close() => new CloseCommand();
-        public static ICommand DeleteLine() => new DeleteLineCommand();
-        public static ICommand Clear() => new ClearCommand();
-        public static ICommand Log(string message) => new LogCommand(message);
-
-
-        internal class ClearCommand : ICommand {
-            public void Execute() => pm.SendMessage($"{pm.getExecutionString()}Clear{pm.getExecutionString()}");
-        }
-        internal class DeleteLineCommand : ICommand {
-            public void Execute() => pm.SendMessage($"{pm.getExecutionString()}DeleteLine{pm.getExecutionString()}");
-        }
-        internal class CloseCommand : ICommand
-        {
-            public void Execute() => pm.SendMessage($"{pm.getExecutionString()}Kill{pm.getExecutionString()}");
-        }
-        internal class LogCommand : ICommand
-        {
-            private string message;
-            public LogCommand(string message) => this.message = message;
-            public void Execute() => pm.SendMessage(message);
-        }
-    }
-
-
-    internal class CommandManager {
-        private PipeManager pm;
-        private Queue<ICommand> commands;
-
-        public CommandManager(string executionString) {
-            pm = new PipeManager(executionString);
-            commands = new Queue<ICommand>();
-        }
-
-        public void AddCommand(ICommand command) {
-            commands.Append(command);
-        }
-
-        public void Execute(ICommand command) {
-            command.Execute();
-        }
-
-        public void ExecuteAll() {
-            foreach (var command in commands) {
-                commands.Dequeue().Execute();
-            }
-        }
-    }
-*/
-
-
+}
     
