@@ -28,7 +28,6 @@ namespace Debugger
         private Console()
         {
             WriteProcessStartArguments("DebugLibrary");
-
             process.StartInfo.FileName = ApplicationPath;
             process.Start();
 
@@ -52,7 +51,6 @@ namespace Debugger
             instance = null;
             PipeObject.Dispose();
         }
-
 
         public string ApplicationPath => ApplicationFolderPath + "\\WpfApp.exe";
         public string ApplicationFolderPath => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\ConsoleWindow";
@@ -161,7 +159,9 @@ namespace Debugger
 
         public void WriteProcessStartArguments(string argument) {
             if (!File.Exists(ProcessStartargumentPath)) {
-                File.Create(ProcessStartargumentPath);
+                using (FileStream stream = File.Create(ProcessStartargumentPath)) {
+                    stream.Close();
+                }
             }
             File.WriteAllText(ProcessStartargumentPath, argument);
         }
@@ -184,7 +184,7 @@ namespace Debugger
 
 
     internal class KillCommand : ICommand {
-        public void Execute() => PipeObject.SendMessage($"{PipeObject.getExecutionString()}Kill{PipeObject.getExecutionString()}");
+        public void Execute() => PipeObject.SendMessage($"{PipeObject.GetExecutionString()}Kill{PipeObject.GetExecutionString()}");
     }
     internal class LogCommand : ICommand {
         private string message;
@@ -198,15 +198,15 @@ namespace Debugger
 
         public void Execute() {
             if (index == -1) {
-                PipeObject.SendMessage($"{PipeObject.getExecutionString()}DeleteLine{PipeObject.getExecutionString()}");
+                PipeObject.SendMessage($"{PipeObject.GetExecutionString()}DeleteLine{PipeObject.GetExecutionString()}");
             }
             else {
-                PipeObject.SendMessage($"{PipeObject.getExecutionString()}DeleteLineWithIndexOf{PipeObject.getExecutionString()}{index}");
+                PipeObject.SendMessage($"{PipeObject.GetExecutionString()}DeleteLineWithIndexOf{PipeObject.GetExecutionString()}{index}");
             }
         }    
     }
     internal class ClearCommand : ICommand {
-        public void Execute() => PipeObject.SendMessage($"{PipeObject.getExecutionString()}Clear{PipeObject.getExecutionString()}");
+        public void Execute() => PipeObject.SendMessage($"{PipeObject.GetExecutionString()}Clear{PipeObject.GetExecutionString()}");
     }
 }
     

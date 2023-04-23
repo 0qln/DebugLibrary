@@ -6,16 +6,11 @@ namespace PipeManaging {
         private StreamWriter writer;
 
         public PipeManager(string pExecutionString) {
-            PipeObject.setExecutionString(pExecutionString);
+            PipeObject.SetExecutionString(pExecutionString);
             PipeObject.setPipeServer();
-            PipeObject.SendMessage(PipeObject.getExecutionString());
+            PipeObject.SendMessage(PipeObject.GetExecutionString());
 
             writer = new StreamWriter(PipeObject.getPipeServer());
-        }
-
-        public void SendMessage(string message) {
-            writer.WriteLine(message);
-            writer.Flush();
         }
     }
 
@@ -38,11 +33,11 @@ namespace PipeManaging {
         }
 
         private static string executionString;
-        public static string getExecutionString() {
+        public static string GetExecutionString() {
             if (executionString == null) throw new ArgumentException("ExecutionString has not been initiated yet.");
             return executionString;
         }
-        public static void setExecutionString(string value) {
+        public static void SetExecutionString(string value) {
             if (executionString != null) throw new ArgumentException("ExecutionString can only be initiated once.");
             executionString = value;
         }
