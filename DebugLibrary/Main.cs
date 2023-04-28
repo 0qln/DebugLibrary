@@ -10,13 +10,36 @@ using System.Diagnostics;
 
 namespace Debugger
 {
-    public class Console : IConsole
+    public static class Console {
+        private static ConsoleManager _manager = ConsoleManager.Instaciate;
+
+
+        public static void Log(string message) => _manager.Log(message);
+        public static void ClearLine() => _manager.ClearLine();
+        public static void ClearLine(int index) => _manager.ClearLine(index);
+        public static void ClearAll() => _manager.ClearAll();
+        public static void ClearRange(int bottom, int top) => _manager.ClearRange(bottom, top);
+
+        public static void Save() => _manager.Save();
+        public static void SaveNew() => _manager.SaveNew(); 
+        public static void Save(string filename) => _manager.Save(filename);
+        public static void SaveNew(string filename) => _manager.Save(filename); 
+        public static void Load() => _manager.Load();
+        public static void Load(string  filename) => _manager.Load(filename);
+
+        public static string ApplicationPath => ApplicationFolderPath + "\\WpfApp.exe";
+        public static string ApplicationFolderPath => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\ConsoleWindow";
+        public static string? ProjectDirectory => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        public static string ProcessStartargumentPath => ApplicationFolderPath + "\\startArguments.txt";
+    }
+
+    internal class ConsoleManager : IConsole
     {
         internal static List<string> content = new List<string>();
 
         private static Process process = new Process();
 
-        private static Console ?instance;
+        private static ConsoleManager ?instance;
         private static readonly object padlock = new object();
 
         private const string executionString = "```";
@@ -25,7 +48,7 @@ namespace Debugger
         private PipeManager pipeManager;
 
 
-        private Console()
+        private ConsoleManager()
         {
             WriteProcessStartArguments("DebugLibrary");
             process.StartInfo.FileName = ApplicationPath;
@@ -33,14 +56,14 @@ namespace Debugger
 
             pipeManager = new PipeManager(executionString);
         }
-        public static Console Instaciate {
+        public static ConsoleManager Instaciate {
             get
             {
                 lock (padlock)
                 {
                     if (instance == null)
                     {
-                        instance = new Console();
+                        instance = new ConsoleManager();
                     }
                     return instance;
                 }
@@ -54,7 +77,7 @@ namespace Debugger
 
         public string ApplicationPath => ApplicationFolderPath + "\\WpfApp.exe";
         public string ApplicationFolderPath => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\ConsoleWindow";
-        internal string ProjectDirectory => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        internal string? ProjectDirectory => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         internal string ProcessStartargumentPath => ApplicationFolderPath + "\\startArguments.txt";
 
         public void Log(string message) {
@@ -111,7 +134,7 @@ namespace Debugger
         public void Save(string filename) {
             if (filename == null) throw new ArgumentException("Filename was null.");
 
-            if (!Directory.Exists(filename)) Directory.CreateDirectory(Path.GetDirectoryName(filename));
+            if (!Directory.Exists(filename)) Directory.CreateDirectory(Path.GetDirectoryName(filename)!);
             if (!File.Exists(filename)) File.Create(filename);
 
             File.WriteAllLines(filename, content);
@@ -119,7 +142,7 @@ namespace Debugger
         public void SaveNew(string filename) {
             if (filename == null) throw new ArgumentException("Filename was null.");
 
-            if (!Directory.Exists(filename)) Directory.CreateDirectory(Path.GetDirectoryName(filename));
+            if (!Directory.Exists(filename)) Directory.CreateDirectory(Path.GetDirectoryName(filename)!);
             if (!File.Exists(filename)) File.Create(filename);
 
             while (File.Exists(filename)) {
@@ -142,7 +165,7 @@ namespace Debugger
 
         internal string GetUniqueFilename(string filename)
         {
-            string directory = Path.GetDirectoryName(filename);
+            string directory = Path.GetDirectoryName(filename)!;
             string extension = Path.GetExtension(filename);
             string nameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
             string newFilename = filename;
@@ -157,7 +180,7 @@ namespace Debugger
             return newFilename;
         }
 
-        public void WriteProcessStartArguments(string argument) {
+        private void WriteProcessStartArguments(string argument) {
             if (!File.Exists(ProcessStartargumentPath)) {
                 using (FileStream stream = File.Create(ProcessStartargumentPath)) {
                     stream.Close();
