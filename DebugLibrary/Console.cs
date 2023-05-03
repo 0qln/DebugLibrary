@@ -15,6 +15,7 @@ namespace Debugger
 
 
         public static void Log(string message) => _manager.Log(message);
+        public static void Log(object message) => Log(message.ToString());
         public static void ClearLine() => _manager.ClearLine();
         public static void ClearLine(int index) => _manager.ClearLine(index);
         public static void ClearAll() => _manager.ClearAll();
