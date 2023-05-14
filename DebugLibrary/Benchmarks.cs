@@ -6,9 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace DebugLibrary {
-    namespace Benchmarks {
-        public static class Benchmark {
-            public static void ExecuteMeasured(Action action, params object[] parameters) {
+    namespace Benchmark {
+        public static class Measure {
+            public static void Execute(Action action, params object[] parameters) {
                 Stopwatch sw = new();
                 sw.Start();
                 action.Invoke();
