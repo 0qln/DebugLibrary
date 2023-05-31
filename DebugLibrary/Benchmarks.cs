@@ -8,14 +8,13 @@ using System.Threading.Tasks;
 namespace DebugLibrary {
     namespace Benchmark {
         public static class Measure {
-            public static void Execute(Action action, params object[] parameters) {
+            public static Stopwatch Execute(Action action, params object[] parameters) {
                 Stopwatch sw = new();
                 sw.Start();
                 action.Invoke();
                 sw.Stop();
-                Debugger.Console.Log(sw.ElapsedMilliseconds + " Milliseconds");
+                return sw;
             }
-
         }
     }
 }

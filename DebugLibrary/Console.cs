@@ -4,11 +4,11 @@ using System.IO.Pipes;
 using System.Reflection;
 using System.Linq;
 using CommandLibrary;
-using PipeManaging;
+using DebugLibrary.PipeManaging;
 using System.Diagnostics;
 
 
-namespace Debugger
+namespace DebugLibrary
 {
     public static class Console {
         private static ConsoleManager _manager = ConsoleManager.Instaciate;

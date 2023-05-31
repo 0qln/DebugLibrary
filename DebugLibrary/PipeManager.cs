@@ -1,6 +1,6 @@
 using System.IO.Pipes;
 
-namespace PipeManaging {
+namespace DebugLibrary.PipeManaging {
     internal class PipeManager
     {
         private StreamWriter writer;
