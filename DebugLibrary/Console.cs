@@ -1,8 +1,4 @@
-﻿using System;
-using System.IO;
-using System.IO.Pipes;
-using System.Reflection;
-using System.Linq;
+﻿using System.Reflection;
 using CommandLibrary;
 using DebugLibrary.PipeManaging;
 using System.Diagnostics;
@@ -10,23 +6,104 @@ using System.Diagnostics;
 
 namespace DebugLibrary
 {
+    public class ConsoleFeatureNotSupportedException : Exception {
+        public ConsoleFeatureNotSupportedException() 
+            : base("System.Console does not support such a Feature. \n" + 
+                    "Try using the ConsoleWindow application: https://github.com/0qln/ConsoleApplication.") { }
+        public ConsoleFeatureNotSupportedException(string message) : base(message) { }
+        public ConsoleFeatureNotSupportedException(string message, Exception inner) : base(message, inner) { }
+    }
+
     public static class Console {
+        public static bool UseSystemConsole {get; set;} = false;
+
         private static ConsoleManager _manager = ConsoleManager.Instaciate;
 
+        internal static void TryUnless(Action tryAction, Action fallbackAction, bool condition) {
+            if (condition) {
+                try {
+                    tryAction.Invoke();
+                }
+                catch (Exception e) {
+                    fallbackAction.Invoke();
+                    System.Console.WriteLine(e.ToString());
+                }
+            }
+            else {
+                fallbackAction.Invoke();
+            }
+        }
+        public static void Log(string message) {
+            TryUnless(() => _manager.Log(message), 
+                    () => System.Console.WriteLine(message), 
+                    !UseSystemConsole);
+        }
+        public static void Log(object? message) {
+            string messageStr = String.Empty;
+            if (message is not null) {
+                messageStr = message.ToString()!;
+            }
+            TryUnless(() => _manager.Log(messageStr), 
+                    () => System.Console.WriteLine(messageStr), 
+                    !UseSystemConsole); 
+        }
+        public static void ClearLine() { 
+            TryUnless(() => _manager.ClearLine(),
+                    () => throw new NotSupportedException(),
+                    !UseSystemConsole); 
+        }
+        public static void ClearLine(int index) {
+            TryUnless(()=>_manager.ClearLine(index), () => {
+                    System.Console.SetCursorPosition(0, index);
+                    System.Console.Write(new string(' ', System.Console.WindowWidth));},
+                    !UseSystemConsole); 
+        }
+        public static void ClearAll() {
+            TryUnless(() => _manager.ClearAll(),
+                    () => System.Console.Clear(),
+                    !UseSystemConsole);
+        }
+        public static void ClearRange(int bottom, int top) {
+            TryUnless(() => _manager.ClearRange(bottom, top),
+                    () => {
+                        for (int i = 0; i < Math.Abs(bottom-top); i++) {
+                            System.Console.SetCursorPosition(0, bottom + 1);
+                            System.Console.Write(new string(' ', System.Console.WindowWidth));
+                        }
+                    },
+                    !UseSystemConsole);
+        }
 
-        public static void Log(string message) => _manager.Log(message);
-        public static void Log(object message) => Log(message.ToString());
-        public static void ClearLine() => _manager.ClearLine();
-        public static void ClearLine(int index) => _manager.ClearLine(index);
-        public static void ClearAll() => _manager.ClearAll();
-        public static void ClearRange(int bottom, int top) => _manager.ClearRange(bottom, top);
-
-        public static void Save() => _manager.Save();
-        public static void SaveNew() => _manager.SaveNew(); 
-        public static void Save(string filename) => _manager.Save(filename);
-        public static void SaveNew(string filename) => _manager.Save(filename); 
-        public static void Load() => _manager.Load();
-        public static void Load(string  filename) => _manager.Load(filename);
+        public static void Save() {
+            TryUnless(_manager.Save,
+                    () => throw new ConsoleFeatureNotSupportedException(),
+                    !UseSystemConsole);
+        }
+        public static void SaveNew() {
+            TryUnless(_manager.SaveNew,
+                    () => throw new ConsoleFeatureNotSupportedException(),
+                    !UseSystemConsole);
+        }
+        public static void Save(string filename) {
+            TryUnless(() => _manager.Save(filename),
+                    () => throw new ConsoleFeatureNotSupportedException(),
+                    !UseSystemConsole);
+        }
+        public static void SaveNew(string filename) {
+            TryUnless(() => _manager.SaveNew(filename),
+                    () => throw new ConsoleFeatureNotSupportedException(),
+                    !UseSystemConsole);
+        }
+        public static void Load() {
+            TryUnless(_manager.Load,
+                    () => throw new ConsoleFeatureNotSupportedException(),
+                    !UseSystemConsole);
+        }
+        public static void Load(string filename) {
+            TryUnless(() => _manager.Load(filename),
+                    () => throw new ConsoleFeatureNotSupportedException(),
+                    !UseSystemConsole);
+        }
 
         public static string ApplicationPath => ApplicationFolderPath + "\\WpfApp.exe";
         public static string ApplicationFolderPath => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\ConsoleWindow";
