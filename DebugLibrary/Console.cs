@@ -17,11 +17,13 @@ namespace DebugLibrary
     public static class Console {
         public static bool UseSystemConsole {get; set;} = false;
 
-        private static ConsoleManager _manager = ConsoleManager.Instaciate;
+        private static ConsoleManager? _manager;
 
         internal static void TryUnless(Action tryAction, Action fallbackAction, bool condition) {
-            if (condition) {
+            if (!condition) {
                 try {
+                    if (_manager == null)
+                        _manager = ConsoleManager.Instaciate;
                     tryAction.Invoke();
                 }
                 catch (Exception e) {
@@ -34,75 +36,75 @@ namespace DebugLibrary
             }
         }
         public static void Log(string message) {
-            TryUnless(() => _manager.Log(message), 
+            TryUnless(() => _manager?.Log(message), 
                     () => System.Console.WriteLine(message), 
-                    !UseSystemConsole);
+                    UseSystemConsole);
         }
         public static void Log(object? message) {
             string messageStr = String.Empty;
             if (message is not null) {
                 messageStr = message.ToString()!;
             }
-            TryUnless(() => _manager.Log(messageStr), 
+            TryUnless(() => _manager?.Log(messageStr), 
                     () => System.Console.WriteLine(messageStr), 
-                    !UseSystemConsole); 
+                    UseSystemConsole); 
         }
         public static void ClearLine() { 
-            TryUnless(() => _manager.ClearLine(),
+            TryUnless(() => _manager?.ClearLine(),
                     () => throw new NotSupportedException(),
-                    !UseSystemConsole); 
+                    UseSystemConsole); 
         }
         public static void ClearLine(int index) {
-            TryUnless(()=>_manager.ClearLine(index), () => {
+            TryUnless(()=>_manager?.ClearLine(index), () => {
                     System.Console.SetCursorPosition(0, index);
                     System.Console.Write(new string(' ', System.Console.WindowWidth));},
-                    !UseSystemConsole); 
+                    UseSystemConsole); 
         }
         public static void ClearAll() {
-            TryUnless(() => _manager.ClearAll(),
+            TryUnless(() => _manager?.ClearAll(),
                     () => System.Console.Clear(),
-                    !UseSystemConsole);
+                    UseSystemConsole);
         }
         public static void ClearRange(int bottom, int top) {
-            TryUnless(() => _manager.ClearRange(bottom, top),
+            TryUnless(() => _manager?.ClearRange(bottom, top),
                     () => {
                         for (int i = 0; i < Math.Abs(bottom-top); i++) {
                             System.Console.SetCursorPosition(0, bottom + 1);
                             System.Console.Write(new string(' ', System.Console.WindowWidth));
                         }
                     },
-                    !UseSystemConsole);
+                    UseSystemConsole);
         }
 
         public static void Save() {
-            TryUnless(_manager.Save,
+            TryUnless(() => _manager?.Save(),
                     () => throw new ConsoleFeatureNotSupportedException(),
-                    !UseSystemConsole);
+                    UseSystemConsole);
         }
         public static void SaveNew() {
-            TryUnless(_manager.SaveNew,
+            TryUnless(() => _manager?.SaveNew(),
                     () => throw new ConsoleFeatureNotSupportedException(),
-                    !UseSystemConsole);
+                    UseSystemConsole);
         }
         public static void Save(string filename) {
-            TryUnless(() => _manager.Save(filename),
+            TryUnless(() => _manager?.Save(filename),
                     () => throw new ConsoleFeatureNotSupportedException(),
-                    !UseSystemConsole);
+                    UseSystemConsole);
         }
         public static void SaveNew(string filename) {
-            TryUnless(() => _manager.SaveNew(filename),
+            TryUnless(() => _manager?.SaveNew(filename),
                     () => throw new ConsoleFeatureNotSupportedException(),
-                    !UseSystemConsole);
+                    UseSystemConsole);
         }
         public static void Load() {
-            TryUnless(_manager.Load,
+            TryUnless(() => _manager?.Load(),
                     () => throw new ConsoleFeatureNotSupportedException(),
-                    !UseSystemConsole);
+                    UseSystemConsole);
         }
         public static void Load(string filename) {
-            TryUnless(() => _manager.Load(filename),
+            TryUnless(() => _manager?.Load(filename),
                     () => throw new ConsoleFeatureNotSupportedException(),
-                    !UseSystemConsole);
+                    UseSystemConsole);
         }
 
         public static string ApplicationPath => ApplicationFolderPath + "\\WpfApp.exe";
